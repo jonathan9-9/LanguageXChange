@@ -6,15 +6,6 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK 1
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Install dependencies
-RUN apt-get update && apt-get install -y curl gnupg
-
-# Install Node.js and npm
-RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor -o /usr/share/keyrings/nodesource-archive-keyring.gpg
-RUN echo "deb [signed-by=/usr/share/keyrings/nodesource-archive-keyring.gpg] https://deb.nodesource.com/node_14.x bullseye main" > /etc/apt/sources.list.d/nodesource.list
-RUN apt-get update && apt-get install -y nodejs
-
-
 # work directory
 WORKDIR /code
 
