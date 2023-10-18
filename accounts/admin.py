@@ -2,6 +2,7 @@ from django.contrib import admin
 from .models import Language, User, FriendsList
 # Register your models here.
 
+
 @admin.register(Language)
 class LanguageAdmin(admin.ModelAdmin):
     pass
