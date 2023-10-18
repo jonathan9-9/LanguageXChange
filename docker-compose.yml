@@ -7,3 +7,11 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/code
+  # react:
+  #   build:
+  #     context: ghi
+  #   ports:
+  #     - "3000:3000"
+  #   working_dir: /app
+  #   volumes:
+  #     - .:/code
