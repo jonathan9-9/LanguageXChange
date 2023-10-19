@@ -1,31 +1,33 @@
-from django.core.serializers import serialize
-from django.utils.safestring import mark_safe
-from .models import FriendsList, BlockedUser
-import json
+from json import JSONEncoder
+from django.db.models import QuerySet
+from .models import User, Language, FriendsList, BlockedUser
 
-class ModelEncoder(json.JSONEncoder):
+
+class LanguageEncoder(JSONEncoder):
     def default(self, o):
-        if hasattr(o, 'to_dict'):
-            return o.to_dict()
+        if isinstance(o, Language):
+            return {
+                'id': o.id,
+                'name': o.name
+            }
         return super().default(o)
 
-class FriendsListEncoder(ModelEncoder):
+class FriendsListEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, FriendsList):
             return {
-                'sender': o.sender.id,
-                'recipient': o.recipient.id,
+                'id': o.id,
+                'sender': o.sender,
+                'recipient': o.recipient
             }
         return super().default(o)
 
-class BlockedUserEncoder(ModelEncoder):
+class BlockedUserEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, BlockedUser):
             return {
-                'blocked_by': o.blocked_by.id,
-                'blocked_user': o.blocked_user.id,
+                'id': o.id,
+                'blocked_by': o.blocked_by,
+                'blocked_user': o.blocked_user
             }
         return super().default(o)
-
-def custom_json_response(data, encoder_class):
-    return mark_safe(json.dumps(data, cls=encoder_class))

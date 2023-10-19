@@ -1,8 +1,13 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse
-from .models import FriendsList, BlockedUser
+from django.http import HttpResponse, JsonResponse
+from .models import User, FriendsList, BlockedUser
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from .json import FriendsListEncoder, BlockedUserEncoder
+
+
+
+
 
 
 @login_required
