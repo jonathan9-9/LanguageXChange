@@ -1,6 +1,6 @@
 from django.db import models
+from django.contrib.auth.models import User
 
-# Create your models here.
 class Language(models.Model):
     name = models.CharField(max_length=150)
 
@@ -24,3 +24,9 @@ class FriendsList(models.Model):
         related_name='recipient',
         on_delete=models.CASCADE)
 
+class BlockedUser(models.Model):
+    blocked_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blocked_by')
+    blocked_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blocked_user')
+
+    class Meta:
+        unique_together = ('blocked_by', 'blocked_user')
