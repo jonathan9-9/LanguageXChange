@@ -14,11 +14,3 @@ services:
     volumes:
       - ./ghi:/ghi
 
-  # react:
-  #   build:
-  #     context: ghi
-  #   ports:
-  #     - "3000:3000"
-  #   working_dir: /app
-  #   volumes:
-  #     - .:/code
