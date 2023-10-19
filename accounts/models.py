@@ -23,4 +23,3 @@ class FriendsList(models.Model):
         "User",
         related_name='recipient',
         on_delete=models.CASCADE)
-
