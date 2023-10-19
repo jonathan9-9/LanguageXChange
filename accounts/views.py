@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from accounts.common.json import ModelEncoder
-from django.contrib.auth.models import User
+
+# from django.contrib.auth.models import User
 from django.views.decorators.http import require_http_methods
 from .models import User
 import json
