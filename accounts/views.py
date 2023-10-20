@@ -1,79 +1,209 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from .models import User, FriendsList, BlockedUser
+from accounts.common.json import ModelEncoder
 from django.contrib.auth.models import User
-from django.contrib.auth.decorators import login_required
-from .json import FriendsListEncoder, BlockedUserEncoder
+from .models import User
+from django.views.decorators.http import require_http_methods
+# from django.contrib.auth.decorators import login_required
+import json
 
 
+class UsersListEncoder(ModelEncoder):
+    model = User
+    properties = [
+        "id",
+        "first_name",
+        "last_name",
+        "username",
+        "city",
+        "state",
+        "country",
+    ]
 
 
+class UserDetailEncoder(ModelEncoder):
+    model = User
+    properties = [
+        "id",
+        "first_name",
+        "last_name",
+        "username",
+        "password",
+        "city",
+        "state",
+        "country",
+    ]
 
+class FriendsListEncoder(ModelEncoder):
+    model = FriendsList
+    properties = [
+        'id',
+        'sender',
+        'recipient',
+    ]
 
-@login_required
-def friends_list(request):
-    users = User.objects.exclude(user=request.user)
-    context = {
-        'users': users
-    }
-    return render(request, "accounts/home.html", context)
+# class BlockedUserEncoder(ModelEncoder):
+#     model = BlockedUser
+#     properties = [
+#         'id',
+#         'blocked_by',
+#         'blocked_user',
+#     ]
 
-@login_required
-def send_friend_request(request, user_id):
-    from_user = request.user
-    to_user = User.objects.get(id=user_id)
-    created = FriendsList.objects.get_or_create(
-        from_user=from_user,
-        to_user=to_user
-    )
-    if created:
-        return HttpResponse('Friend request sent')
+@require_http_methods(["GET", "DELETE", "PUT"])
+def api_show_user(request, id):
+    if request.method == "GET":
+        try:
+            user = User.objects.get(id=id)
+            return JsonResponse(
+                user,
+                encoder=UsersListEncoder,
+                safe=False
+            )
+        except User.DoesNotExist:
+            response = JsonResponse({"message": "Account does not exist"})
+            response.status_code = 404
+            return response
+    elif request.method == "DELETE":
+        try:
+            count, _= User.objects.filter(id=id).delete()
+            return JsonResponse({"deleted": count > 0})
+        except User.DoesNotExist:
+            return JsonResponse({"message": "Account does not exist"})
     else:
-        return HttpResponse('Friend request was already sent')
+        content = json.loads(request.body)
+        User.objects.filter(id=id).update(**content)
+        user = User.objects.get(id=id)
+        return JsonResponse(
+            user,
+            encoder=UsersListEncoder,
+            safe=False,
+        )
 
-@login_required
-def accept_friend_request(request, request_id):
-    friends_list = FriendsList.objects.get(id=request_id)
-    if friends_list.to_user == request.user:
-        friends_list.to_user.friends.add(friends_list.from_user)
-        friends_list.from_user.friends.add(friends_list.to_user)
-        friends_list.delete()
-        return HttpResponse('Friend request accepted')
+
+@require_http_methods(["GET", "POST"])
+def api_list_user(request):
+    if request.method == "GET":
+        users = User.objects.all()
+        return JsonResponse(
+            {"users": users},
+            encoder=UserDetailEncoder,
+            safe=False,
+        )
     else:
-        return HttpResponse('Friend request denied')
+        try:
+            content = json.loads(request.body)
+            user = User.objects.create(**content)
+            return JsonResponse(
+                user,
+                encoder=UserDetailEncoder,
+                safe=False,
+            )
+        except:
+            response = JsonResponse(
+                {"message": "Cannot create a user"}
+            )
+            response.status_code = 400
+            return response
 
-@login_required
-def cancel_friend_request(request, request_id):
-    friends_list = get_object_or_404(FriendsList, id=request_id)
-    if friends_list.to_user == request.user:
-        friends_list.delete()
-        return HttpResponse('Friend request canceled')
-    else:
-        return HttpResponse('Cannot cancel this friend request')
+# @login_required
+@require_http_methods(["GET"])
+def api_friends_list(request):
+    if request.method == "GET":
+        if request.user.is_authenticated:
+            try:
+                sender_friends = FriendsList.objects.filter(sender=request.user)
+                return JsonResponse(
+                    {"friends": sender_friends},
+                    encoder=FriendsListEncoder,
+                )
+            except FriendsList.DoesNotExist:
+                return JsonResponse(
+                    {"message": "No friends exist"},
+                    status=404,
+                )
+        else:
+            return JsonResponse(
+                {"message": "User is not authenticated"},
+                status=401,
+            )
 
-@login_required
-def delete_friend(request, friend_id):
-    friend = get_object_or_404(FriendsList, id=friend_id)
+@require_http_methods(["POST", "PUT", "DELETE"])
+def api_friend_request(request, id=None):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        sender_id = data.get("sender")
+        recipient_id = data.get("recipient")
 
-    if request.user == friend.from_user or request.user == friend.to_user:
-        friend.delete()
-        return HttpResponse('Friend deleted')
-    else:
-        return HttpResponse('Cannot delete this friend')
+        try:
+            sender = User.objects.get(id=sender_id)
+            recipient = User.objects.get(id=recipient_id)
+        except User.DoesNotExist:
+            return JsonResponse({"message": "User not found"}, status=404)
 
-@login_required
-def block_user(request, user_id):
-    user_to_block = get_object_or_404(User, id=user_id)
+        friend_request = FriendsList.objects.create(
+            sender=sender,
+            recipient=recipient
+        )
 
-    if BlockedUser.objects.filter(blocked_by=request.user, blocked_user=user_to_block).exists():
-        return HttpResponse('User is already blocked')
+        return JsonResponse({"message": "Friend request sent"}, status=201)
 
-    blocked_user, created = BlockedUser.objects.get_or_create(
-        blocked_by=request.user,
-        blocked_user=user_to_block
-    )
+    elif request.method == "PUT":
+        try:
+            friend = FriendsList.objects.get(id=id)
+            friend.save()
+            friend_data = {
+                "id": friend.id,
+                "sender": friend.sender.id,  # Convert sender to ID
+                "recipient": friend.recipient.id,  # Convert recipient to ID
+            }
+            return JsonResponse(
+                friend_data,
+                safe=False,
+                status=200
+            )
+        except FriendsList.DoesNotExist:
+            return JsonResponse(
+                {"message": "Could not accept or cancel friend request"},
+                status=400,
+            )
 
-    if created:
-        return HttpResponse('User blocked')
-    else:
-        return HttpResponse('User is already blocked')
+    elif request.method == "DELETE":
+        count, _ = FriendsList.objects.filter(id=id).delete()
+        if count > 0:
+            return JsonResponse({'message': 'Friend deleted'})
+        else:
+            return JsonResponse({'message': 'Friend not found'}, status=404)
+
+    elif request.method == "GET":
+        try:
+            friends = FriendsList.objects.all()
+            return JsonResponse(
+                {"friends": friends},
+                encoder=FriendsListEncoder,
+            )
+        except FriendsList.DoesNotExist:
+            return JsonResponse(
+                {"message": "No friends exist"},
+                status=404,
+            )
+
+# # @login_required
+# @require_http_methods(["POST"])
+# def api_block_user(request, id):
+
+#   user_to_block = get_object_or_404(User, id=id)
+
+#   if BlockedUser.objects.filter(blocked_by=request.user, blocked_user=user_to_block).exists():
+#       return JsonResponse({'message': 'User is already blocked'}, status=400)
+
+#   blocked_user, created = BlockedUser.objects.get_or_create(
+#       blocked_by=request.user,
+#       blocked_user=user_to_block
+#   )
+
+#   if created:
+#       return JsonResponse(blocked_user, encoder=BlockedUserEncoder)
+#   else:
+#       return JsonResponse({'message': 'User is already blocked'}, status=400)
