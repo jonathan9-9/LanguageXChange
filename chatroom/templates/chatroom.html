@@ -19,14 +19,51 @@
     <title>Hello, world!</title>
   </head>
   <body>
+    <div class="container">
+      <div class="row d-flex justify-content-center">
+        <div class="col-6">
+          <form>
+            <div class="form-group">
+              <label for="exampleFormControlTextArea1" class="h4 pt-5"
+                >Chatroom</label
+              >
+              <textarea class="form-control" id="chat-text" rows="10"></textarea
+              ><br />
+            </div>
+            <div class="form-group" id="input" type="text"><br /></div>
+            <input
+              class="btn btn-secondary btn-lg btn-block"
+              id="submit"
+              type="button"
+              value="send"
+            />
+          </form>
+        </div>
+      </div>
+    </div>
+    {% comment %} <textarea id="chat-text" cols="70" rows="30"></textarea><br />
+    <input id="input" type="text" size="70" /><br />
+    <input id="submit" type="button" value="send" /> {% endcomment %}
+
     <div id="user-hello"></div>
 
     {{ room_name|json_script:"room-name" }}
 
     <script>
+      document.querySelector("#submit").onClick = function (e) {
+        const messageInputDom = document.querySelector("#input");
+        const message = messageInputDom.value;
+        chatSocket.send(
+          JSON.stringify({
+            message: message,
+          })
+        );
+        messageInputDom.value = "";
+      };
       const roomName = JSON.parse(
         document.getElementById("room-name").textContent
       );
+
       const chatSocket = new WebSocket(
         "ws://" + window.location.host + "/ws/chat/" + roomName + "/"
       );
@@ -34,6 +71,7 @@
         const data = JSON.parse(e.data);
         console.log(data);
         document.querySelector("#user-hello").innerHTML = data.tester;
+        document.querySelector("#chat-text").value += data.message + "\n";
       };
     </script>
 
