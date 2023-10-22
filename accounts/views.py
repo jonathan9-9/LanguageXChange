@@ -1,11 +1,13 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
-from .models import User, FriendsList, BlockedUser
+from .models import User, FriendsList
 from accounts.common.json import ModelEncoder
 from django.contrib.auth.models import User
 from .models import User
 from django.views.decorators.http import require_http_methods
-# from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import RegistrationForm
+
 import json
 
 
@@ -51,6 +53,21 @@ class FriendsListEncoder(ModelEncoder):
 #         'blocked_user',
 #     ]
 
+
+
+def register(request):
+    if request.method == 'POST':
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('login')
+    else:
+        form = RegistrationForm()
+    return render(request, 'registration/register.html', {'form': form})
+
+
+
+@login_required
 @require_http_methods(["GET", "DELETE", "PUT"])
 def api_show_user(request, id):
     if request.method == "GET":
@@ -107,7 +124,7 @@ def api_list_user(request):
             response.status_code = 400
             return response
 
-# @login_required
+@login_required
 @require_http_methods(["GET"])
 def api_friends_list(request):
     if request.method == "GET":
@@ -129,6 +146,7 @@ def api_friends_list(request):
                 status=401,
             )
 
+@login_required
 @require_http_methods(["POST", "PUT", "DELETE"])
 def api_friend_request(request, id=None):
     if request.method == "POST":

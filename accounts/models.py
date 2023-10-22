@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+# from django.conf import settings
 
 
 
@@ -27,10 +28,3 @@ class FriendsList(models.Model):
         "User",
         related_name='recipient',
         on_delete=models.CASCADE)
-
-class BlockedUser(models.Model):
-    blocked_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blocked_by')
-    blocked_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blocked_user')
-
-    class Meta:
-        unique_together = ('blocked_by', 'blocked_user')
