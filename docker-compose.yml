@@ -13,4 +13,7 @@ services:
       - "3000:3000"
     volumes:
       - ./ghi:/ghi
-
+  redis:
+    build: ./chat
+    ports:
+      - "6379:6379"
