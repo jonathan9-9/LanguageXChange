@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from accounts.common.json import ModelEncoder
-from django.contrib.auth.models import User
+
+# from django.contrib.auth.models import User
 from django.views.decorators.http import require_http_methods
 from .models import User
 import json
@@ -39,18 +40,14 @@ def api_show_user(request, id):
     if request.method == "GET":
         try:
             user = User.objects.get(id=id)
-            return JsonResponse(
-                user,
-                encoder=UsersListEncoder,
-                safe=False
-            )
+            return JsonResponse(user, encoder=UsersListEncoder, safe=False)
         except User.DoesNotExist:
             response = JsonResponse({"message": "Account does not exist"})
             response.status_code = 404
             return response
     elif request.method == "DELETE":
         try:
-            count, _= User.objects.filter(id=id).delete()
+            count, _ = User.objects.filter(id=id).delete()
             return JsonResponse({"deleted": count > 0})
         except User.DoesNotExist:
             return JsonResponse({"message": "Account does not exist"})
@@ -63,7 +60,6 @@ def api_show_user(request, id):
             encoder=UsersListEncoder,
             safe=False,
         )
-
 
 
 @require_http_methods(["GET", "POST"])
@@ -85,8 +81,6 @@ def api_list_user(request):
                 safe=False,
             )
         except:
-            response = JsonResponse(
-                {"message": "Cannot create a user"}
-            )
+            response = JsonResponse({"message": "Cannot create a user"})
             response.status_code = 400
             return response
